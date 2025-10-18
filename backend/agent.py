@@ -24,21 +24,21 @@ class agent:
                 text_content = file.read()
             
             # Create the prompt for ChatGPT
-            prompt = f"""Analyze the following text and create a knowledge node with connections:
+            prompt = f"""Analyze the following text, identify its main concept, connections to other concepts, and provide a concise explanation:
             Text: {text_content}
             
             Create a JSON response with:
-            1. A unique identifier (ID)
+            1. Concept name
             2. A list of key concepts this text connects to (connections)
-            3. A concise summary of the main content
+            3. A concise summary of the main concept
             
-            Format: {{"ID": "unique_string", "connections": ["concept1", "concept2"], "content": "summary"}}"""
+            Format: {{"ID": "Concept name", "connections": ["concept1", "concept2"], "content": "summary"}}"""
             #-----------------------------------------------------------------------------
             
             # Call Claude API
             response = self.client.messages.create(
                 model="claude-sonnet-4-5",
-                max_tokens=1000,
+                max_tokens=500,
                 system="You are a knowledge graph assistant that creates nodes and connections from text.",
                 messages=[
                     {"role": "user", "content": prompt}
