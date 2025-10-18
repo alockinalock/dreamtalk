@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "name": "1",
+    "connections": [2, 3],
+    "longtext": "This is the root node of the mind map. It represents the central topic from which all other ideas branch out."
+  },
+  {
+    "id": 2,
+    "name": "2",
+    "connections": [1, 4],
+    "longtext": "This node represents the first main idea related to the root. It contains additional details and examples that expand on this concept."
+  },
+  {
+    "id": 3,
+    "name": "3",
+    "connections": [1, 5, 6],
+    "longtext": "This node represents the second main idea. It branches into sub-ideas and provides context and explanations for better understanding."
+  },
+  {
+    "id": 4,
+    "name": "4",
+    "connections": [2],
+    "longtext": "A sub-idea branching from Idea1. Contains finer details and supporting arguments."
+  },
+  {
+    "id": 5,
+    "name": "5",
+    "connections": [3],
+    "longtext": "A sub-idea branching from Idea2. Elaborates on one aspect of Idea2 in depth."
+  },
+  {
+    "id": 6,
+    "name": "6",
+    "connections": [3],
+    "longtext": "Another sub-idea branching from Idea2. Provides additional examples and clarifications."
+  }
+]
