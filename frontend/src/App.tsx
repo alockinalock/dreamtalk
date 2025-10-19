@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react';
 import type { Node as RFNode, Edge as RFEdge, NodeChange, EdgeChange, Connection } from '@xyflow/react';
 import data from './assets/test.json';
@@ -80,6 +80,24 @@ export default function App() {
   const { nodes: initialNodes, edges: initialEdges } = layoutGraph(data as MindMapNode[]);
   const [nodes, setNodes] = useState<RFNode[]>(initialNodes);
   const [edges, setEdges] = useState<RFEdge[]>(initialEdges);
+
+  // periodically fetch updated data from test1.json every 5s and re-layout
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/src/assets/test1.json');
+        if (!res.ok) return;
+        const newData = (await res.json()) as MindMapNode[];
+        const { nodes: newNodes, edges: newEdges } = layoutGraph(newData);
+        setNodes(newNodes);
+        setEdges(newEdges);
+      } catch (err) {
+        console.error('Failed to fetch simulated update', err);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((ns) => applyNodeChanges(changes, ns)),

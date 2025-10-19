@@ -1,7 +1,7 @@
 [
   {
     "id": 1,
-    "name": "SUPER LONG NAME",
+    "name": "SUPER LONG NAME THIS IS NODE 1 AKA THE ROOT NODE HOORAY",
     "connections": 1,
     "longtext": "This is the root node of the mind map. It represents the central topic from which all other ideas branch out."
   },
