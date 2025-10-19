@@ -1,246 +1,174 @@
-// audioExtractor.ts
-// Real-time audio transcription with rolling window updates to text file
+/**
+ * Live Conversation Transcription with Speaker Separation
+ * 
+ * This script listens to live audio from the microphone and transcribes it in real-time,
+ * separating different speakers using OpenAI's Whisper API with speaker diarization.
+ * 
+ * Output format: [timestamp] Speaker_A: text | Speaker_B: text
+ * 
+ * Features:
+ * - Real-time audio capture (5-second chunks)
+ * - Speaker separation with | delimiter
+ * - Timestamped transcriptions
+ * - Proper WAV format conversion
+ * - Error handling and recovery
+ */
 
-interface TranscriptionEntry {
-  text: string;
-  speaker?: string;
-  timestamp: number;
+import fs from "fs";
+import path from "path";
+import mic from "mic";
+import OpenAI from "openai";
+import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config();
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const OUTPUT_FILE = path.join(__dirname, "transcription.txt");
+
+// Initialize mic with optimized settings for speech
+const micInstance = mic({
+  rate: "48000", // Use 48kHz as it's the default on macOS
+  channels: "1",
+  bitwidth: "16",
+  encoding: "signed-integer",
+  device: "default",
+  exitOnSilence: 0,
+});
+
+const micInputStream = micInstance.getAudioStream();
+
+let audioChunks: Buffer[] = [];
+let isProcessing = false;
+
+// Function to create proper WAV header
+function createWavHeader(dataLength: number): Buffer {
+  const header = Buffer.alloc(44);
+  
+  // RIFF header
+  header.write('RIFF', 0);
+  header.writeUInt32LE(36 + dataLength, 4);
+  header.write('WAVE', 8);
+  
+  // fmt chunk
+  header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16); // fmt chunk size
+  header.writeUInt16LE(1, 20);  // audio format (PCM)
+  header.writeUInt16LE(1, 22);  // number of channels
+  header.writeUInt32LE(48000, 24); // sample rate
+  header.writeUInt32LE(96000, 28); // byte rate
+  header.writeUInt16LE(2, 32);  // block align
+  header.writeUInt16LE(16, 34); // bits per sample
+  
+  // data chunk
+  header.write('data', 36);
+  header.writeUInt32LE(dataLength, 40);
+  
+  return header;
 }
 
-interface AudioExtractorConfig {
-  assemblyAiApiKey: string;
-  sampleRate?: number;
-  windowDurationSeconds?: number;
+// Function to get current timestamp
+function getTimestamp(): string {
+  return new Date().toISOString();
 }
 
-class AudioExtractor {
-  private socket: WebSocket | null = null;
-  private stream: MediaStream | null = null;
-  private apiKey: string;
-  private sampleRate: number;
-  private isRecording: boolean = false;
-  private audioContext: AudioContext | null = null;
-  private transcriptions: TranscriptionEntry[] = [];
-  private processor: ScriptProcessorNode | null = null;
-  private lastSpeaker: string | null = null;
-  private windowDurationMs: number;
-  private updateInterval: number | null = null;
+// Collect audio data
+micInputStream.on("data", (data: Buffer) => {
+  audioChunks.push(data);
+  console.log(`🎤 Received ${data.length} bytes of audio data`);
+});
 
-  constructor(config: AudioExtractorConfig) {
-    this.apiKey = config.assemblyAiApiKey;
-    this.sampleRate = config.sampleRate || 16000;
-    this.windowDurationMs = (config.windowDurationSeconds || 10) * 1000;
-  }
+// Process audio chunks every "audio_window" seconds for more responsive transcription
+setInterval(async () => {
+  if (audioChunks.length === 0 || isProcessing) return;
+  
+  isProcessing = true;
+  const audioBuffer = Buffer.concat(audioChunks);
+  audioChunks = [];
 
-  async startRecording(): Promise<void> {
-    try {
-      this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      const token = await this.getRealtimeToken();
-      
-      this.socket = new WebSocket(
-        `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=${this.sampleRate}&token=${token}&speaker_labels=true`
-      );
+  try {
+    // Create proper WAV file with header
+    const wavHeader = createWavHeader(audioBuffer.length);
+    const wavBuffer = Buffer.concat([wavHeader, audioBuffer]);
+    
+    const tmpPath = path.join(__dirname, "temp.wav");
+    fs.writeFileSync(tmpPath, wavBuffer);
 
-      this.socket.onopen = () => {
-        console.log('Connected to AssemblyAI');
-        this.startAudioStream();
-        this.startPeriodicUpdates();
-      };
+    console.log(`🎤 Processing ${audioBuffer.length} bytes of audio...`);
 
-      this.socket.onmessage = (message) => {
-        const result = JSON.parse(message.data);
-        
-        if (result.message_type === 'FinalTranscript' && result.text.trim()) {
-          this.saveTranscription({
-            text: result.text.trim(),
-            speaker: result.words?.[0]?.speaker || null,
-            timestamp: Date.now()
-          });
-        } else if (result.message_type === 'PartialTranscript') {
-          console.log('[PARTIAL]', result.text);
-        }
-      };
-
-      this.socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-
-      this.socket.onclose = () => {
-        console.log('Disconnected from AssemblyAI');
-      };
-
-      this.isRecording = true;
-      console.log(`Recording started with ${this.windowDurationMs / 1000}s rolling window...`);
-      
-    } catch (error) {
-      console.error('Error starting recording:', error);
-      throw error;
-    }
-  }
-
-  private async getRealtimeToken(): Promise<string> {
-    const response = await fetch('https://api.assemblyai.com/v2/realtime/token', {
-      method: 'POST',
-      headers: {
-        'authorization': this.apiKey,
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify({ expires_in: 3600 })
+    const response = await openai.audio.transcriptions.create({
+      file: fs.createReadStream(tmpPath),
+      model: "whisper-1",
+      language: "en", // Specify language for better accuracy
+      response_format: "verbose_json", // Use verbose_json to get speaker information
+      timestamp_granularities: ["segment"], // Enable segment-level timestamps
     });
 
-    const data = await response.json();
-    return data.token;
-  }
-
-  private startAudioStream(): void {
-    this.audioContext = new AudioContext({ sampleRate: this.sampleRate });
-    const source = this.audioContext.createMediaStreamSource(this.stream!);
-    this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
-
-    source.connect(this.processor);
-    this.processor.connect(this.audioContext.destination);
-
-    this.processor.onaudioprocess = (e) => {
-      const inputData = e.inputBuffer.getChannelData(0);
+    if (response && response.segments && response.segments.length > 0) {
+      const timestamp = getTimestamp();
+      let transcription = `[${timestamp}] `;
       
-      const int16Data = new Int16Array(inputData.length);
-      for (let i = 0; i < inputData.length; i++) {
-        const s = Math.max(-1, Math.min(1, inputData[i]));
-        int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
-      }
-
-      if (this.socket?.readyState === WebSocket.OPEN) {
-        this.socket.send(int16Data.buffer);
-      }
-    };
-  }
-
-  private startPeriodicUpdates(): void {
-    // Update text file every windowDurationMs
-    this.updateInterval = window.setInterval(() => {
-      this.appendToTextFile();
-      // Clear transcriptions that have been saved
-      this.clearSavedTranscriptions();
-    }, this.windowDurationMs);
-  }
-
-  private saveTranscription(entry: TranscriptionEntry): void {
-    // Check if speaker changed
-    if (entry.speaker && entry.speaker !== this.lastSpeaker && this.transcriptions.length > 0) {
-      // Add separator when speaker changes
-      this.transcriptions.push({ text: '|', speaker: null, timestamp: entry.timestamp });
-    }
-    
-    this.transcriptions.push(entry);
-    this.lastSpeaker = entry.speaker || null;
-    console.log(`[SAVED] ${entry.text}`);
-  }
-
-  private clearSavedTranscriptions(): void {
-    // Clear transcriptions after they've been saved to file
-    this.transcriptions = [];
-    console.log(`[CLEARED] Transcriptions saved and cleared for next window`);
-  }
-
-  private appendToTextFile(): void {
-    if (this.transcriptions.length === 0) {
-      console.log('[UPDATE] No new transcriptions to append');
-      return;
+      // Group segments by speaker and format with | separator
+      const speakerGroups: { [key: string]: string[] } = {};
+      
+      response.segments.forEach((segment: any) => {
+        const speaker = segment.speaker || "Speaker_Unknown";
+        if (!speakerGroups[speaker]) {
+          speakerGroups[speaker] = [];
+        }
+        speakerGroups[speaker].push(segment.text.trim());
+      });
+      
+      // Format with speaker separation using |
+      const formattedSegments = Object.entries(speakerGroups).map(([speaker, texts]) => {
+        return `${speaker}: ${texts.join(" ")}`;
+      });
+      
+      transcription += formattedSegments.join(" | ");
+      
+      fs.appendFileSync(OUTPUT_FILE, transcription + "\n");
+      console.log("📝 Transcribed with speakers:", transcription);
+    } else if (response && response.text && response.text.trim()) {
+      // Fallback to simple transcription if no segments
+      const timestamp = getTimestamp();
+      const transcription = `[${timestamp}] ${response.text.trim()}`;
+      
+      fs.appendFileSync(OUTPUT_FILE, transcription + "\n");
+      console.log("📝 Transcribed (no speaker info):", response.text.trim());
     }
 
-    // Build simple text format: transcription | transcription | ...
-    const textContent = this.transcriptions.map(t => t.text).join(' ');
-    
-    const blob = new Blob([textContent + '\n'], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'conversation.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    console.log(`[APPENDED] Added ${this.transcriptions.length} entries to conversation.txt`);
+    fs.unlinkSync(tmpPath); // cleanup
+  } catch (err) {
+    console.error("❌ Transcription error:", err);
+    // Don't lose audio data on error, add it back
+    audioChunks.unshift(audioBuffer);
+  } finally {
+    isProcessing = false;
   }
+}, 5000); // Process every 5 seconds for responsive transcription
 
-  stopRecording(): void {
-    if (this.updateInterval) {
-      clearInterval(this.updateInterval);
-      this.updateInterval = null;
-    }
-
-    if (this.socket) {
-      this.socket.send(JSON.stringify({ terminate_session: true }));
-      this.socket.close();
-      this.socket = null;
-    }
-
-    if (this.processor) {
-      this.processor.disconnect();
-      this.processor = null;
-    }
-
-    if (this.audioContext) {
-      this.audioContext.close();
-      this.audioContext = null;
-    }
-
-    if (this.stream) {
-      this.stream.getTracks().forEach(track => track.stop());
-      this.stream = null;
-    }
-
-    this.isRecording = false;
-    console.log('Recording stopped');
-  }
-
-  getStatus(): boolean {
-    return this.isRecording;
-  }
-
-  getTranscriptionCount(): number {
-    return this.transcriptions.length;
-  }
-}
-
-export default AudioExtractor;
-
-/*
-Usage:
-
-// 10 second window (default)
-const extractor = new AudioExtractor({
-  assemblyAiApiKey: 'YOUR_API_KEY_HERE'
+// Handle mic errors
+micInputStream.on("error", (err) => {
+  console.error("❌ Microphone error:", err);
 });
 
-// OR custom window duration (e.g., 5 seconds)
-const extractor = new AudioExtractor({
-  assemblyAiApiKey: 'YOUR_API_KEY_HERE',
-  windowDurationSeconds: 5
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log("\n🛑 Stopping transcription...");
+  micInstance.stop();
+  process.exit(0);
 });
 
-await extractor.startRecording();
-
-// Every 10 seconds (or your custom duration):
-// - Downloads conversation.txt with NEW content appended
-// - Each line is a new 10-second window
-// - Old content stays, new content is added
-
-// Example timeline:
-// After 10s:  conversation.txt contains:
-//   i like apples | me too | apples are good
-// 
-// After 20s:  conversation.txt contains:
-//   i like apples | me too | apples are good
-//   i like bananas | i dont because bananas are mushy
-// 
-// After 30s:  conversation.txt contains:
-//   i like apples | me too | apples are good
-//   i like bananas | i dont because bananas are mushy
-//   what about oranges | oranges are okay
-
-extractor.stopRecording();
-*/
+// Start mic
+micInstance.start();
+console.log("🎙️ Live conversation transcription with speaker separation started!");
+console.log("📁 Transcriptions will be saved to:", OUTPUT_FILE);
+console.log("👥 Speakers will be separated with | delimiter");
+console.log("📝 Format: [timestamp] Speaker_A: text | Speaker_B: text");
+console.log("⏹️  Press Ctrl+C to stop.");
