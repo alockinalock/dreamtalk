@@ -89,52 +89,49 @@ class agent:
                 except json.JSONDecodeError:
                     existing_nodes = []
             
-            #            Text: {text_content, existing_nodes}
+            # Text: {text_content, existing_nodes}
 
             # Create the prompt for ChatGPT
-            prompt = f"""You are an AI that incrementally builds a semantic mind map from a continuously growing academic conversation between two speakers.
-                Each speaker change is marked with "|", and each new line in the transcript represents an additional 10-second segment.
+            prompt = f"""
+            You are an AI that maintains a JSON-based mind map of an academic conversation between two people.
+            The conversation text below includes all prior dialogue, and the last line represents the newest 10-second addition.
 
-                The full conversation so far is provided below. 
-                The final line represents the newest segment to be analyzed and incorporated into the existing mind map.
+            Below is the current version of the mind map (JSON):
+            {content}
 
-                Full conversation text:
-                {text_content}
-                (End of text)
+            Full conversation text:
+            {text_content}
+            (End of text)
 
-                Step 1: Context understanding
-                Read the entire conversation to maintain continuity of ideas.
+            Step 1: Review and observe
+            Examine the existing JSON to understand current nodes and their relationships.
 
-                Focus your analysis on the final line (the most recent 10-second addition).
+            Read the conversation for context, but focus mainly on the final line to detect new or changed ideas.
 
-                Step 2: Extract new concepts
-                Identify only the keywords introduced in the newest line and not already in the JSON file.
+            Step 2: Extract and interpret
+            Identify new or evolved concepts from the final line only.
 
-                Skip generic academic filler (e.g., “therefore”, “in conclusion”).
+            If a concept already exists but gains new insights, extend its summary rather than creating duplicates.
 
-                Merge synonyms with existing concepts from the prior JSON file.
+            If a new concept appears, create a new node and connect it to relevant existing ones.
 
-                Step 3: Connect ideas
-                Determine how these new keywords relate to existing nodes (hierarchical, causal, or thematic).
+            Step 3: Update the graph
+            Maintain all existing nodes and connections.
 
-                Preserve established relationships from the previous JSON.
+            Add or modify nodes as needed to reflect new developments in the conversation.
 
-                Step 4: Merge and output
-                Using the prior mind map (JSON file provided), do the following:
+            Step 4: Output
+            Return a fully updated JSON array using this schema:
 
-                Discard any node identical to an existing one (same/similar keyword, connections, and summary).
+            Format: {{"ID": "Concept name", "connections": ["concept1", "concept2"], "content": "summary"}}
 
-                Append only new unique nodes or update summaries if a topic gains fresh context.
+            Rules:
 
-                Output the updated mind map as valid JSON in this format:
+            Output must be valid JSON.
 
+            Keep previous nodes intact.
 
-                Format: {{"ID": "Concept name", "connections": ["concept1", "concept2"], "content": "summary"}}
-                Ensure:
-
-                The JSON includes all previous nodes, plus new or updated ones.
-
-                The structure remains valid and consistent."""
+            Add only truly new concepts or updated summaries."""
             #-----------------------------------------------------------------------------
             
             # Call Claude API
