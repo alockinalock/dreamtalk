@@ -38,7 +38,7 @@ export class AudioExtractor {
 
   constructor(outputPath?: string) {
     this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY || "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",
+      apiKey: process.env.OPENAI_API_KEY,
     });
     
     this.outputFile = outputPath || path.join(__dirname, "transcription.txt");
