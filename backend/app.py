@@ -1,8 +1,11 @@
-from flask import Flask
-from flask_cors import CORS
-import os
+from flask import Flask, request, jsonify
+from services.db_service import get_session, update_session
+from services.claude_service import generate_updated_mindmap
+from services.diff_service import get_json_diff 
+from utils.prompt_builder import build_prompt
 from dotenv import load_dotenv
-import openai
+import os
+
 
 # Load environment variables
 load_dotenv()
