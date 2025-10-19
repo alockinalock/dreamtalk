@@ -4,18 +4,170 @@ import type { Node as RFNode, Edge as RFEdge, NodeChange, EdgeChange, Connection
 import data from './assets/test.json';
 import CustomNode from './CustomNode';
 import '@xyflow/react/dist/style.css';
-import { BrowserAudioExtractor } from "../browserAudioExtractor.ts"
 import dagre from 'dagre';
-
 
 type MindMapNode = {
   id: number;
   name: string;
-  connections: number;
+  connections: number | number[];
   longtext: string;
 };
 
-// Layout graph with dagre to reduce edge crossings. Returns positioned nodes & edges.
+// Browser Audio Extractor (in-memory, no localStorage)
+class BrowserAudioExtractor {
+  private openai: any;
+  private apiKey: string;
+  private onTranscriptionUpdate: (text: string) => void;
+  private mediaRecorder: MediaRecorder | null;
+  private audioChunks: Blob[];
+  private isProcessing: boolean;
+  private processingInterval: NodeJS.Timeout | null;
+  private isRunning: boolean;
+  private stream: MediaStream | null;
+  private transcriptionLines: string[];
+
+  constructor(apiKey: string, onTranscriptionUpdate: (text: string) => void) {
+    this.openai = null;
+    this.apiKey = apiKey;
+    this.onTranscriptionUpdate = onTranscriptionUpdate;
+    this.mediaRecorder = null;
+    this.audioChunks = [];
+    this.isProcessing = false;
+    this.processingInterval = null;
+    this.isRunning = false;
+    this.stream = null;
+    this.transcriptionLines = [];
+  }
+
+  async processAudioChunk(): Promise<void> {
+    if (!this.isRunning || this.audioChunks.length === 0 || this.isProcessing) return;
+    
+    this.isProcessing = true;
+    const chunks = [...this.audioChunks];
+    this.audioChunks = [];
+
+    try {
+      if (!this.isRunning) {
+        this.isProcessing = false;
+        return;
+      }
+
+      const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+      const audioFile = new File([audioBlob], "audio.webm", { type: 'audio/webm' });
+
+      if (!this.openai) {
+        const OpenAIModule = await import('openai');
+        const OpenAI = OpenAIModule.default || OpenAIModule;
+        this.openai = new OpenAI({
+          apiKey: this.apiKey,
+          dangerouslyAllowBrowser: true,
+        });
+      }
+
+      console.log('📤 Transcribing audio...');
+      const response = await this.openai.audio.transcriptions.create({
+        file: audioFile,
+        model: "whisper-1",
+        language: "en",
+      });
+
+      if (!this.isRunning) {
+        this.isProcessing = false;
+        return;
+      }
+
+      if (response?.text?.trim()) {
+        const transcription = response.text.trim();
+        this.transcriptionLines.push(transcription);
+        console.log("📝 New transcription:", transcription);
+        
+        if (this.onTranscriptionUpdate) {
+          this.onTranscriptionUpdate(this.getFullText());
+        }
+      }
+    } catch (err) {
+      console.error("❌ Transcription error:", err);
+    } finally {
+      this.isProcessing = false;
+    }
+  }
+
+  async start(): Promise<void> {
+    if (this.isRunning) {
+      console.log("⚠️ Already running");
+      return;
+    }
+
+    try {
+      console.log('🎙️ Starting audio capture...');
+      
+      this.stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: { channelCount: 1, sampleRate: 48000 } 
+      });
+
+      this.mediaRecorder = new MediaRecorder(this.stream, { mimeType: 'audio/webm' });
+
+      this.mediaRecorder.ondataavailable = (event: BlobEvent) => {
+        if (this.isRunning && event.data.size > 0) {
+          this.audioChunks.push(event.data);
+        }
+      };
+
+      this.isRunning = true;
+      this.mediaRecorder.start();
+      
+      this.processingInterval = setInterval(() => {
+        if (this.isRunning && this.mediaRecorder?.state === "recording") {
+          this.mediaRecorder.stop();
+          this.processAudioChunk();
+          if (this.isRunning) this.mediaRecorder.start();
+        }
+      }, 5000);
+
+      console.log("✅ Audio capture started");
+    } catch (err) {
+      console.error("❌ Failed to start:", err);
+      this.isRunning = false;
+      throw err;
+    }
+  }
+
+  stop(): void {
+    if (!this.isRunning) return;
+
+    this.isRunning = false;
+
+    if (this.processingInterval) {
+      clearInterval(this.processingInterval);
+      this.processingInterval = null;
+    }
+
+    this.audioChunks = [];
+
+    if (this.mediaRecorder) {
+      this.mediaRecorder.ondataavailable = null;
+      if (this.mediaRecorder.state !== "inactive") this.mediaRecorder.stop();
+      this.mediaRecorder = null;
+    }
+
+    if (this.stream) {
+      this.stream.getTracks().forEach(track => track.stop());
+      this.stream = null;
+    }
+
+    console.log("🛑 Audio capture stopped");
+  }
+
+  getFullText(): string {
+    return this.transcriptionLines.join('\n');
+  }
+
+  isActive(): boolean {
+    return this.isRunning;
+  }
+}
+
+// Layout graph with dagre to reduce edge crossings
 const layoutGraph = (data: MindMapNode[]) => {
   const minWidth = 100;
   const maxWidth = 240;
@@ -24,27 +176,24 @@ const layoutGraph = (data: MindMapNode[]) => {
   const nodeHeight = 40;
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  // left -> right layout
   g.setGraph({ rankdir: 'LR', nodesep: 80, ranksep: 40, marginx: 20, marginy: 20 });
 
   const ids = data.map((d) => d.id);
 
-  // add nodes with measured width/height
   for (const n of data) {
     const label = n.name ?? '';
     const width = Math.min(maxWidth, Math.max(minWidth, label.length * charWidth + horizontalPadding));
     g.setNode(n.id.toString(), { width, height: nodeHeight });
   }
 
-  // build edges using connections rules (array / id / count)
   const edges: RFEdge[] = [];
   for (const n of data) {
     const src = n.id.toString();
     let targets: number[] = [];
-    if (Array.isArray((n as any).connections)) {
-      targets = (n as any).connections as number[];
-    } else if (typeof (n as any).connections === 'number') {
-      const connNum = (n as any).connections as number;
+    if (Array.isArray(n.connections)) {
+      targets = n.connections as number[];
+    } else if (typeof n.connections === 'number') {
+      const connNum = n.connections as number;
       if (ids.includes(connNum)) targets = [connNum];
       else targets = Array.from({ length: connNum }, (_, i) => n.id + i + 1).filter((tid) => ids.includes(tid));
     }
@@ -55,15 +204,12 @@ const layoutGraph = (data: MindMapNode[]) => {
     }
   }
 
-  // compute layout
   dagre.layout(g);
 
-  // extract positioned nodes
   const nodes: RFNode[] = data.map((n) => {
     const d = g.node(n.id.toString());
     const width = d.width as number;
     const height = d.height as number;
-    // dagre gives center x/y; convert to top-left for React Flow
     return {
       id: n.id.toString(),
       type: 'custom',
@@ -76,46 +222,32 @@ const layoutGraph = (data: MindMapNode[]) => {
   return { nodes, edges };
 };
 
-// edges are computed inside layoutGraph to match dagre layout
-
 export default function App() {
   const { nodes: initialNodes, edges: initialEdges } = layoutGraph(data as MindMapNode[]);
   const [nodes, setNodes] = useState<RFNode[]>(initialNodes);
   const [edges, setEdges] = useState<RFEdge[]>(initialEdges);
   const [selectedNode, setSelectedNode] = useState<RFNode | null>(null);
   const [isListening, setIsListening] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [currentText, setCurrentText] = useState('');
+  const [backendUrl] = useState('http://localhost:5000');
   
-  // CRITICAL FIX: Use useRef to maintain the same extractor instance
   const extractorRef = useRef<BrowserAudioExtractor | null>(null);
-  
-  // Initialize extractor once
-  if (!extractorRef.current) {
-    extractorRef.current = new BrowserAudioExtractor();
-  }
-  
-  const extractor = extractorRef.current;
+  const updateIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Expose to window for emergency console access
-  useEffect(() => {
-    (window as any).audioExtractor = extractorRef.current;
-    console.log('🔧 Extractor exposed globally as window.audioExtractor');
-    
-    return () => {
-      delete (window as any).audioExtractor;
-    };
-  }, []);
-
-  // Cleanup: stop audio when component unmounts
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (extractorRef.current?.isActive()) {
-        console.log('🧹 Component unmounting - stopping audio');
-        extractorRef.current.emergencyStop();
+        extractorRef.current.stop();
+      }
+      if (updateIntervalRef.current) {
+        clearInterval(updateIntervalRef.current);
       }
     };
   }, []);
 
-  // periodically fetch updated data from test1.json every 5s and re-layout
+  // Periodically fetch updated data from test1.json every 5s and re-layout
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
@@ -149,41 +281,127 @@ export default function App() {
   );
 
   const onNodeClick = useCallback((_event: any, node: RFNode) => {
-    // open modal with node longtext
     setSelectedNode(node);
   }, []);
 
-  const handleStart = async () => {
-    console.log('🎙️ Audio listening started');
+  // Callback when transcription updates
+  const handleTranscriptionUpdate = useCallback((fullText: string) => {
+    setCurrentText(fullText);
+    console.log('📝 Transcription updated:', fullText.length, 'characters');
+  }, []);
+
+  // Use refs to avoid stale closure issues
+  const sessionIdRef = useRef<string | null>(null);
+  const currentTextRef = useRef<string>('');
+
+  // Update refs when state changes
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
+
+  useEffect(() => {
+    currentTextRef.current = currentText;
+  }, [currentText]);
+
+  // Send update to backend every 15 seconds
+  const sendUpdateToBackend = useCallback(async () => {
+    if (!sessionIdRef.current || !currentTextRef.current) {
+      console.log('⏭️ Skipping update - no session or no text');
+      return;
+    }
+
     try {
-      // this is where the fetch is happening
-      const [sessionId, setSessionId] = useState(null);
-      const response = await fetch('http:localhost:5000/create_session', {
-        method: 'POST'
+      console.log('📤 Sending update to backend...');
+      console.log('Session:', sessionIdRef.current);
+      console.log('Text length:', currentTextRef.current.length);
+      
+      const blob = new Blob([currentTextRef.current], { type: 'text/plain' });
+      const formData = new FormData();
+      formData.append('session_id', sessionIdRef.current);
+      formData.append('file', blob, 'transcription.txt');
+
+      const res = await fetch(`${backendUrl}/update_mindmap`, {
+        method: 'POST',
+        body: formData,
       });
 
-      const data = await response.json();
-      setSessionId(data.session_id);
+      if (!res.ok) {
+        throw new Error(`Backend returned ${res.status}`);
+      }
 
-
-      await extractor.ae_start();
-      setIsListening(true);
+      const data = await res.json();
+      const { nodes: newNodes, edges: newEdges } = layoutGraph(data.mindmap);
+      
+      setNodes(newNodes);
+      setEdges(newEdges);
+      console.log('✅ Mindmap updated with', data.mindmap.length, 'nodes');
     } catch (err) {
-      console.error('Failed to start audio:', err);
+      console.error('❌ Backend update failed:', err);
+    }
+  }, [backendUrl]);
+
+  const handleStart = async () => {
+    // Get API key from environment
+    const openaiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    
+    if (!openaiKey) {
+      alert('OpenAI API key not found in .env file. Please set VITE_OPENAI_API_KEY');
+      return;
+    }
+
+    try {
+      console.log('📞 Creating session...');
+      
+      const sessionRes = await fetch(`${backendUrl}/create_session`, { 
+        method: 'POST' 
+      });
+      
+      if (!sessionRes.ok) {
+        throw new Error('Failed to create session');
+      }
+      
+      const sessionData = await sessionRes.json();
+      const newSessionId = sessionData.session_id;
+      setSessionId(newSessionId);
+      console.log('✅ Session created:', newSessionId);
+      
+      if (!extractorRef.current) {
+        extractorRef.current = new BrowserAudioExtractor(openaiKey, handleTranscriptionUpdate);
+      }
+
+      await extractorRef.current.start();
+      setIsListening(true);
+      
+      // Start 15-second backend update interval
+      updateIntervalRef.current = setInterval(() => {
+        console.log('⏰ 15-second interval triggered');
+        sendUpdateToBackend();
+      }, 15000);
+      
+      console.log('✅ All systems started');
+    } catch (err) {
+      console.error('❌ Start failed:', err);
+      alert('Failed to start: ' + (err as Error).message);
     }
   };
 
   const handleStop = async () => {
-    console.log('🛑 Audio listening stopped');
-    try {
-      extractor.ae_stop();
-      setIsListening(false);
-    } catch (err) {
-      console.error('Failed to stop audio:', err);
+    console.log('🛑 Stopping...');
+    
+    if (extractorRef.current) {
+      extractorRef.current.stop();
     }
+    
+    if (updateIntervalRef.current) {
+      clearInterval(updateIntervalRef.current);
+      updateIntervalRef.current = null;
+    }
+    
+    setIsListening(false);
+    console.log('✅ Stopped all processes');
   };
 
-  // close modal with Escape
+  // Close modal with Escape
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setSelectedNode(null);
