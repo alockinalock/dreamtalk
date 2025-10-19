@@ -161,7 +161,7 @@ export class AudioExtractor {
     }
   }
 
-  public start(): void {
+  public ae_start(): void {
     if (this.isRunning) {
       console.log("AudioExtractor is already running");
       return;
@@ -179,7 +179,7 @@ export class AudioExtractor {
     console.log("🎙️ AudioExtractor started - transcribing to:", this.outputFile);
   }
 
-  public stop(): void {
+  public ae_stop(): void {
     if (!this.isRunning) {
       console.log("AudioExtractor is not running");
       return;

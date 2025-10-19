@@ -1,1 +1,1 @@
-declare module "mic";
+declare module 'mic';

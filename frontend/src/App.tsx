@@ -4,7 +4,9 @@ import type { Node as RFNode, Edge as RFEdge, NodeChange, EdgeChange, Connection
 import data from './assets/test.json';
 import CustomNode from './CustomNode';
 import '@xyflow/react/dist/style.css';
+import {AudioExtractor} from "../audioExtractor.ts"
 import dagre from 'dagre';
+
 
 type MindMapNode = {
   id: number;
@@ -81,6 +83,8 @@ export default function App() {
   const [nodes, setNodes] = useState<RFNode[]>(initialNodes);
   const [edges, setEdges] = useState<RFEdge[]>(initialEdges);
   const [selectedNode, setSelectedNode] = useState<RFNode | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const extractor = new AudioExtractor();
 
   // periodically fetch updated data from test1.json every 5s and re-layout
   useEffect(() => {
@@ -120,6 +124,26 @@ export default function App() {
     setSelectedNode(node);
   }, []);
 
+  const handleStart = async () => {
+    console.log('Audio listening started');
+    try {
+      extractor.ae_start() // ✅ Call your audioExtractor’s start()
+      setIsListening(true);
+    } catch (err) {
+      console.error('Failed to start audio:', err);
+    }
+  };
+
+  const handleStop = async () => {
+    console.log('Audio listening stopped');
+    try {
+      extractor.ae_stop() // ✅ Call your audioExtractor’s stop()
+      setIsListening(false);
+    } catch (err) {
+      console.error('Failed to stop audio:', err);
+    }
+  };
+
   // close modal with Escape
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -131,6 +155,41 @@ export default function App() {
 
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
+      <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10, display: 'flex', gap: 10 }}>
+        {!isListening ? (
+          <button
+            onClick={handleStart}
+            style={{
+              padding: '10px 18px',
+              backgroundColor: '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: 6,
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: 500,
+            }}
+          >
+            🎙️ Start Audio
+          </button>
+        ) : (
+          <button
+            onClick={handleStop}
+            style={{
+              padding: '10px 18px',
+              backgroundColor: '#dc3545',
+              color: 'white',
+              border: 'none',
+              borderRadius: 6,
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: 500,
+            }}
+          >
+            ⏹️ Stop Audio
+          </button>
+        )}
+      </div>
       <ReactFlow
         nodes={nodes}
         edges={edges}
