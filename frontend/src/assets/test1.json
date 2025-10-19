@@ -38,12 +38,12 @@
     {
     "id": 7,
     "name": "7",
-    "connections": 4,
+    "connections": [4, 8],
     "longtext": "Another sub-idea branching from Idea2. Provides additional examples and clarifications."
   },
   {
     "id": 8,
-    "name": "7",
+    "name": "8",
     "connections": 6,
     "longtext": "Another sub-idea branching from Idea2. Provides additional examples and clarifications."
   }

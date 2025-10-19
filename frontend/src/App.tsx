@@ -65,7 +65,7 @@ const layoutGraph = (data: MindMapNode[]) => {
     return {
       id: n.id.toString(),
       type: 'custom',
-      data: { label: n.name },
+      data: { label: n.name, longtext: n.longtext },
       position: { x: (d.x as number) - width / 2, y: (d.y as number) - height / 2 },
       style: { width },
     } as RFNode;
@@ -80,6 +80,7 @@ export default function App() {
   const { nodes: initialNodes, edges: initialEdges } = layoutGraph(data as MindMapNode[]);
   const [nodes, setNodes] = useState<RFNode[]>(initialNodes);
   const [edges, setEdges] = useState<RFEdge[]>(initialEdges);
+  const [selectedNode, setSelectedNode] = useState<RFNode | null>(null);
 
   // periodically fetch updated data from test1.json every 5s and re-layout
   useEffect(() => {
@@ -114,6 +115,20 @@ export default function App() {
     []
   );
 
+  const onNodeClick = useCallback((_event: any, node: RFNode) => {
+    // open modal with node longtext
+    setSelectedNode(node);
+  }, []);
+
+  // close modal with Escape
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedNode(null);
+    };
+    if (selectedNode) window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedNode]);
+
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
       <ReactFlow
@@ -123,8 +138,52 @@ export default function App() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeClick={onNodeClick}
         fitView
       />
+      {selectedNode ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+          onClick={() => setSelectedNode(null)}
+        >
+          <div
+            style={{
+              background: 'white',
+              color: '#000',
+              maxWidth: '720px',
+              width: '90%',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              padding: '20px',
+              borderRadius: 8,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0 }}>{(selectedNode.data as any)?.label ?? 'Details'}</h2>
+              <button
+                onClick={() => setSelectedNode(null)}
+                style={{ border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer' }}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ marginTop: 12, whiteSpace: 'pre-wrap' }}>{(selectedNode.data as any)?.longtext}</div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
