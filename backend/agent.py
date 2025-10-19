@@ -32,7 +32,7 @@ class agent:
                 2. A comma separated list of connections
                 3. A concise summary of the discussion regarding the main concept
             
-                Format: {{“id”: “keyword”, "connections": ["concept1", "concept2"], "content": "summary"}}"""
+                Format: {{“id”: a number starting at 1 increment by 1, "name": "Name of the concept", "connections": [id of concept1, id of concept2], "longtext": "summary"}}"""
                 #-----------------------------------------------------------------------------
                 
                 # Call Claude API
@@ -123,7 +123,8 @@ class agent:
             Step 4: Output
             Return a fully updated JSON array using this schema:
 
-            Format: {{"ID": "Concept name", "connections": ["concept1", "concept2"], "content": "summary"}}
+            Format: {{“id”: a number starting at 1 increment by 1, "name": "Name of the concept", "connections": [id of concept1, id of concept2], "longtext": "summary"}}
+
 
             Rules:
 
@@ -181,7 +182,6 @@ class agent:
             raise Exception(f"Error generating node: {str(e)}")
 
     def push(self, node_json: str):
-        # this will be updaated later to push to a database
         """Adds generated node to node.json file
             Args:
                 output to be added to node.json
