@@ -1,0 +1,3 @@
+.env
+services/__pycache__/
+testing.py
