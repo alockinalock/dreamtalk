@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 
 .env
+
+
+*.js
+!eslint.config.js
+!postcss.config.js
