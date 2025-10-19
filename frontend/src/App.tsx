@@ -2,8 +2,10 @@ import React, { useEffect, useState, useRef } from "react";
 import ForceGraph2D from "react-force-graph-2d";
 import type { NodeObject, LinkObject } from "react-force-graph-2d";
 import data from "./assets/test.json";
-import data2 from "./assets/test1.json";
+import data2 from "./assets/test2.json";
 import './App.css';
+
+import { forceCollide } from "d3-force-3d";
 
 type MindMapNode = {
   id: number;
@@ -79,10 +81,16 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!fgRef.current) return;
 
-    // Strengthen charge force to reduce node overlap
-    fgRef.current.d3Force("charge").strength(-150);
+    const fg = fgRef.current;
 
-    fgRef.current.d3Force("link")?.distance((link: any) => {
+    // Strengthen charge force to reduce node overlap
+    fg.d3Force("charge").strength(-150);
+
+    // Add collision detection based on node radius (prevents overlapping)
+    fg.d3Force("collide", forceCollide((node: any) => (node.val || 5) + 5));
+
+    // Dynamic link distance calculation
+    fg.d3Force("link")?.distance((link: any) => {
       const source = link.source;
       const target = link.target;
 
@@ -92,14 +100,15 @@ const App: React.FC = () => {
       const sourceConnections = source?.connections?.length || 1;
       const targetConnections = target?.connections?.length || 1;
 
-      // Base distance plus node radius and connections individually
       const baseDistance = 60;
       const sizeFactor = sourceRadius + targetRadius;
       const connectionFactor = sourceConnections * 8 + targetConnections * 8;
 
       return baseDistance + sizeFactor + connectionFactor;
     });
-    fgRef.current.d3ReheatSimulation();
+
+    // Reheat simulation to apply changes
+    fg.d3ReheatSimulation();
   }, [graphData]);
 
   return (
