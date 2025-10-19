@@ -79,6 +79,9 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!fgRef.current) return;
 
+    // Strengthen charge force to reduce node overlap
+    fgRef.current.d3Force("charge").strength(-150);
+
     fgRef.current.d3Force("link")?.distance((link: any) => {
       const source = link.source;
       const target = link.target;
@@ -90,7 +93,7 @@ const App: React.FC = () => {
       const targetConnections = target?.connections?.length || 1;
 
       // Base distance plus node radius and connections individually
-      const baseDistance = 50;
+      const baseDistance = 60;
       const sizeFactor = sourceRadius + targetRadius;
       const connectionFactor = sourceConnections * 8 + targetConnections * 8;
 
@@ -102,7 +105,6 @@ const App: React.FC = () => {
   return (
     <div id="mindmap" style={{ width: "100vw", height: "100vh" }}>
       <div id="inner-mindmap">
-        # TODO: dynamic node sizes based on title length and number of connections AND link lengths
         <ForceGraph2D
           ref={fgRef}
           graphData={graphData}
@@ -135,7 +137,7 @@ const App: React.FC = () => {
             // Update node.val so that link distance calculations account for new radius
             node.val = radius;
           }}
-          cooldownTicks={100}
+          cooldownTicks={300}
           onNodeClick={(node: any) => {
             const found = (data as MindMapNode[]).find((n) => n.id === node.id) || (data2 as MindMapNode[]).find(n => n.id === node.id);
             if (found) alert(found.longtext);
