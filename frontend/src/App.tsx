@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import ForceGraph2D from "react-force-graph-2d";
 import type { NodeObject, LinkObject } from "react-force-graph-2d";
 import data from "./assets/test.json";
@@ -30,6 +30,7 @@ type GraphData = {
 
 const App: React.FC = () => {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
+  const fgRef = useRef<any>();
 
   // Function to merge new JSON updates
   const mergeMindMap = (newData: MindMapNode[]) => {
@@ -38,8 +39,7 @@ const App: React.FC = () => {
 
       // Add/update nodes
       newData.forEach(n => {
-        // const val = 5 + n.connections.length * 3; // size based on number of connections
-        const val = 7; // size based on number of connections
+        const val = 5 + n.connections.length * 2 + n.name.length * 0.5;
         nodeMap.set(n.id, { id: n.id, name: n.name, val });
       });
 
@@ -76,10 +76,35 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (!fgRef.current) return;
+
+    fgRef.current.d3Force("link")?.distance((link: any) => {
+      const source = link.source;
+      const target = link.target;
+
+      const sourceRadius = source?.val || 5;
+      const targetRadius = target?.val || 5;
+
+      const sourceConnections = source?.connections?.length || 1;
+      const targetConnections = target?.connections?.length || 1;
+
+      // Base distance plus node radius and connections individually
+      const baseDistance = 50;
+      const sizeFactor = sourceRadius + targetRadius;
+      const connectionFactor = sourceConnections * 8 + targetConnections * 8;
+
+      return baseDistance + sizeFactor + connectionFactor;
+    });
+    fgRef.current.d3ReheatSimulation();
+  }, [graphData]);
+
   return (
     <div id="mindmap" style={{ width: "100vw", height: "100vh" }}>
       <div id="inner-mindmap">
+        # TODO: dynamic node sizes based on title length and number of connections AND link lengths
         <ForceGraph2D
+          ref={fgRef}
           graphData={graphData}
           nodeLabel="name"
           nodeAutoColorBy="id"
@@ -92,14 +117,23 @@ const App: React.FC = () => {
             const label = node.name;
             const fontSize = 12 / globalScale;
             ctx.font = `${fontSize}px Sans-Serif`;
+
+            // Measure text width and set node radius to fit
+            const textWidth = ctx.measureText(label).width;
+            const radius = Math.max(10, textWidth / 2 + 6); // minimum radius 10px, padding 6px
+
             ctx.fillStyle = "white";
             ctx.beginPath();
-            ctx.arc(node.x ?? 0, node.y ?? 0, node.val ?? 5, 0, 2 * Math.PI, false);
+            ctx.arc(node.x ?? 0, node.y ?? 0, radius, 0, 2 * Math.PI, false);
             ctx.fill();
+
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillStyle = "black";
             ctx.fillText(label, node.x ?? 0, node.y ?? 0);
+
+            // Update node.val so that link distance calculations account for new radius
+            node.val = radius;
           }}
           cooldownTicks={100}
           onNodeClick={(node: any) => {
