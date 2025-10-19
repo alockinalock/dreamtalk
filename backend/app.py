@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from services.db_service import get_session, update_session
+from services.db_service import get_session, update_session, create_session
 # from services.claude_service import generate_updated_mindmap
 from services.merge_service import merge_mindmap 
 # from utils.prompt_builder import build_prompt
@@ -22,6 +22,13 @@ CORS(app)
 def index():
     return "Backend is running!"
 
+#creating new in database
+@app.route("/create_session", methods=["POST"])
+def create_session_route():
+    session_id = create_session()
+    return jsonify({"session_id": session_id}), 201
+
+#updating text in database
 @app.route("/update_text", methods=["POST"])
 def update_text():
     session_id = request.form.get("session_id")

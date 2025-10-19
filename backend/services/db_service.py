@@ -20,10 +20,10 @@ sessions = db["sessions"]        # collection name for user sessions
 def create_session():
     session_data = {
         "conversation_text": "",
-        "mindmap_json": {},  # empty mindmap initially
+        "nodes_json": "",  
     }
     result = sessions.insert_one(session_data)
-    return str(result.inserted_id)  # return ID as string
+    return str(result.inserted_id)
 
 # Get a session by ID
 def get_session(session_id):
@@ -38,7 +38,7 @@ def update_session(session_id, new_text=None, new_mindmap=None):
     if new_text is not None:
         update_fields["conversation_text"] = new_text
     if new_mindmap is not None:
-        update_fields["mindmap_json"] = new_mindmap
+        update_fields["nodes_json"] = new_mindmap 
 
     sessions.update_one(
         {"_id": ObjectId(session_id)},

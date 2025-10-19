@@ -1,26 +1,18 @@
-from services.merge_service import merge_mindmap
-import json
+import requests
 
-# Sample current mindmap
-current_map = {
-    "nodes": [
-        {"id": 1, "text": "Topic A"},
-        {"id": 2, "text": "Topic B"}
-    ]
-}
+# Create a session
+response = requests.post("http://localhost:5000/create_session")
+data = response.json()
+session_id = data["session_id"]
 
-# Sample delta mindmap from Claude
-delta_map = {
-    "nodes": [
-        {"id": 2, "text": "Updated Topic B"},  # updated
-        {"id": 3, "text": "Topic C"}           # new
-    ]
-}
+print(f"Created session: {session_id}")
 
-# Merge delta into current
-merged_map = merge_mindmap(current_map, delta_map)
+# Update text
+with open("test.txt", "w") as f:
+    f.write("Hello, this is a test conversation.")
 
-# Print results
-print("Current Mindmap:", json.dumps(current_map, indent=2))
-print("Delta Mindmap:", json.dumps(delta_map, indent=2))
-print("Merged Mindmap:", json.dumps(merged_map, indent=2))
+files = {"file": open("test.txt", "rb")}
+form_data = {"session_id": session_id}
+
+response = requests.post("http://localhost:5000/update_text", data=form_data, files=files)
+print(response.json())
