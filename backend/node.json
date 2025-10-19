@@ -1,0 +1,150 @@
+[
+  {
+    "ID": "Electron Configurations",
+    "connections": [
+      "Theater Analogy",
+      "Energy Levels",
+      "Oxygen Example",
+      "Iron Example",
+      "Aufbau Principle",
+      "Complicated Seating Chart"
+    ],
+    "content": "The arrangement of electrons in atoms, organized by filling orbitals in order of increasing energy. Students often find this challenging but can understand it through analogies and systematic rules."
+  },
+  {
+    "ID": "Theater Analogy",
+    "connections": [
+      "Electron Configurations",
+      "Energy Levels"
+    ],
+    "content": "A pedagogical metaphor comparing electron configuration to filling seats in a theater, where lower energy levels (front seats) fill first before higher energy levels."
+  },
+  {
+    "ID": "Energy Levels",
+    "connections": [
+      "Electron Configurations",
+      "Theater Analogy",
+      "Filling Order"
+    ],
+    "content": "Quantum mechanical shells that electrons occupy, following sequence 1s, 2s, 2p, 3s, 3p, 4s, 3d, etc. Lower energy levels are filled before higher ones."
+  },
+  {
+    "ID": "Oxygen Example",
+    "connections": [
+      "Electron Configurations",
+      "Atomic Number"
+    ],
+    "content": "Oxygen has configuration 1s² 2s² 2p⁴, with 8 total electrons matching its atomic number. Used as a simple example to demonstrate electron filling."
+  },
+  {
+    "ID": "Atomic Number",
+    "connections": [
+      "Oxygen Example"
+    ],
+    "content": "The number of protons (and electrons in neutral atoms) in an element. For oxygen, this is 8."
+  },
+  {
+    "ID": "Iron Example",
+    "connections": [
+      "Electron Configurations",
+      "Transition Metals",
+      "Noble Gas Shorthand",
+      "Iron Ions"
+    ],
+    "content": "Iron's electron configuration is [Ar] 4s² 3d⁶. A more complex example used to illustrate transition metal configurations and the use of noble gas shorthand."
+  },
+  {
+    "ID": "Transition Metals",
+    "connections": [
+      "Iron Example"
+    ],
+    "content": "Elements in the d-block of the periodic table that have partially filled d orbitals. Their electron configurations are more complex than main group elements."
+  },
+  {
+    "ID": "Noble Gas Shorthand",
+    "connections": [
+      "Iron Example",
+      "Argon Core"
+    ],
+    "content": "A notation method that uses the previous noble gas symbol in brackets (e.g., [Ar]) to represent inner electron configuration, simplifying notation for large atoms."
+  },
+  {
+    "ID": "Argon Core",
+    "connections": [
+      "Noble Gas Shorthand"
+    ],
+    "content": "The [Ar] notation represents the electron configuration of argon (1s² 2s² 2p⁶ 3s² 3p⁶), used as a shortcut in writing configurations for elements beyond argon."
+  },
+  {
+    "ID": "Iron Ions",
+    "connections": [
+      "Iron Example",
+      "Electron Loss Order"
+    ],
+    "content": "When iron forms Fe²⁺ or Fe³⁺ ions, electrons are removed from the 4s orbital first, despite 4s filling before 3d. This demonstrates the counterintuitive nature of ionization."
+  },
+  {
+    "ID": "Electron Loss Order",
+    "connections": [
+      "Iron Ions",
+      "Filling Order"
+    ],
+    "content": "The counterintuitive principle that 4s electrons are removed before 3d electrons during ionization, even though 4s fills before 3d during atomic build-up."
+  },
+  {
+    "ID": "Filling Order",
+    "connections": [
+      "Energy Levels",
+      "Electron Loss Order",
+      "Aufbau Principle"
+    ],
+    "content": "Electrons fill orbitals by energy level, not by principal quantum number. This explains why 4s fills before 3d but empties first during ionization."
+  },
+  {
+    "ID": "Aufbau Principle",
+    "connections": [
+      "Electron Configurations",
+      "Filling Order",
+      "Hund's Rule",
+      "Pauli Exclusion Principle"
+    ],
+    "content": "The fundamental principle stating that electrons fill orbitals starting with the lowest available energy levels first (aufbau means 'building up' in German)."
+  },
+  {
+    "ID": "Hund's Rule",
+    "connections": [
+      "Aufbau Principle"
+    ],
+    "content": "Rule stating that electrons spread out among orbitals of the same energy (degenerate orbitals) before pairing up, minimizing electron-electron repulsion."
+  },
+  {
+    "ID": "Pauli Exclusion Principle",
+    "connections": [
+      "Aufbau Principle",
+      "Quantum Numbers"
+    ],
+    "content": "Principle stating that no two electrons in an atom can have the same set of four quantum numbers. This limits each orbital to two electrons with opposite spins."
+  },
+  {
+    "ID": "Quantum Numbers",
+    "connections": [
+      "Pauli Exclusion Principle"
+    ],
+    "content": "Set of four numbers (n, l, m_l, m_s) that uniquely describe each electron in an atom. The Pauli Exclusion Principle requires these to be unique for each electron."
+  },
+  {
+    "ID": "Complicated Seating Chart",
+    "connections": [
+      "Electron Configurations",
+      "Physics Basis"
+    ],
+    "content": "Student analogy summarizing electron configurations as a complex seating arrangement for electrons, acknowledging the systematic but intricate nature of the rules."
+  },
+  {
+    "ID": "Physics Basis",
+    "connections": [
+      "Complicated Seating Chart"
+    ],
+    "content": "The underlying quantum mechanical principles that govern electron behavior and configuration rules, providing theoretical foundation beyond simple analogies."
+  }
+]
