@@ -248,22 +248,22 @@ export default function App() {
   }, []);
 
   // Periodically fetch updated data from test1.json every 5s and re-layout
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch('/src/assets/test1.json');
-        if (!res.ok) return;
-        const newData = (await res.json()) as MindMapNode[];
-        const { nodes: newNodes, edges: newEdges } = layoutGraph(newData);
-        setNodes(newNodes);
-        setEdges(newEdges);
-      } catch (err) {
-        console.error('Failed to fetch simulated update', err);
-      }
-    }, 5000);
+  // useEffect(() => {
+  //   const interval = setInterval(async () => {
+  //     try {
+  //       const res = await fetch('/src/assets/test1.json');
+  //       if (!res.ok) return;
+  //       const newData = (await res.json()) as MindMapNode[];
+  //       const { nodes: newNodes, edges: newEdges } = layoutGraph(newData);
+  //       setNodes(newNodes);
+  //       setEdges(newEdges);
+  //     } catch (err) {
+  //       console.error('Failed to fetch simulated update', err);
+  //     }
+  //   }, 5000);
 
-    return () => clearInterval(interval);
-  }, []);
+  //   return () => clearInterval(interval);
+  // }, []);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((ns) => applyNodeChanges(changes, ns)),
