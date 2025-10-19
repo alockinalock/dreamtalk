@@ -4,12 +4,12 @@
  * This script listens to live audio from the microphone and transcribes it in real-time,
  * separating different speakers using OpenAI's Whisper API with speaker diarization.
  * 
- * Output format: [timestamp] Speaker_A: text | Speaker_B: text
+ * Output format: text | text (each chunk on new line, no timestamps)
  * 
  * Features:
  * - Real-time audio capture (5-second chunks)
  * - Speaker separation with | delimiter
- * - Timestamped transcriptions
+ * - Clean text output (no timestamps or speaker labels)
  * - Proper WAV format conversion
  * - Error handling and recovery
  */
@@ -27,7 +27,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: "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",
 });
 
 const OUTPUT_FILE = path.join(__dirname, "transcription.txt");
@@ -111,10 +111,7 @@ setInterval(async () => {
     });
 
     if (response && response.segments && response.segments.length > 0) {
-      const timestamp = getTimestamp();
-      let transcription = `[${timestamp}] `;
-      
-      // Group segments by speaker and format with | separator
+      // Group segments by speaker
       const speakerGroups: { [key: string]: string[] } = {};
       
       response.segments.forEach((segment: any) => {
@@ -125,22 +122,29 @@ setInterval(async () => {
         speakerGroups[speaker].push(segment.text.trim());
       });
       
-      // Format with speaker separation using |
-      const formattedSegments = Object.entries(speakerGroups).map(([speaker, texts]) => {
-        return `${speaker}: ${texts.join(" ")}`;
-      });
+      // Check if we have multiple speakers
+      const speakerKeys = Object.keys(speakerGroups);
+      let transcription = "";
       
-      transcription += formattedSegments.join(" | ");
+      if (speakerKeys.length > 1) {
+        // Multiple speakers - use | delimiter
+        const formattedSegments = speakerKeys.map(speaker => {
+          return speakerGroups[speaker].join(" ");
+        });
+        transcription = formattedSegments.join(" | ");
+      } else {
+        // Single speaker - just the text
+        transcription = speakerGroups[speakerKeys[0]].join(" ");
+      }
       
       fs.appendFileSync(OUTPUT_FILE, transcription + "\n");
-      console.log("📝 Transcribed with speakers:", transcription);
+      console.log("📝 Transcribed:", transcription);
     } else if (response && response.text && response.text.trim()) {
       // Fallback to simple transcription if no segments
-      const timestamp = getTimestamp();
-      const transcription = `[${timestamp}] ${response.text.trim()}`;
+      const transcription = response.text.trim();
       
       fs.appendFileSync(OUTPUT_FILE, transcription + "\n");
-      console.log("📝 Transcribed (no speaker info):", response.text.trim());
+      console.log("📝 Transcribed (no speaker info):", transcription);
     }
 
     fs.unlinkSync(tmpPath); // cleanup
@@ -161,14 +165,42 @@ micInputStream.on("error", (err) => {
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log("\n🛑 Stopping transcription...");
+  clearInterval(fileMonitorInterval);
   micInstance.stop();
   process.exit(0);
 });
+
+// Function to print current transcription file contents
+function printTranscriptionFile() {
+  try {
+    if (fs.existsSync(OUTPUT_FILE)) {
+      const content = fs.readFileSync(OUTPUT_FILE, 'utf8');
+      console.log("\n📄 Current transcription file contents:");
+      console.log("=" .repeat(50));
+      if (content.trim()) {
+        console.log(content);
+      } else {
+        console.log("(File is empty - no transcriptions yet)");
+      }
+      console.log("=" .repeat(50));
+    } else {
+      console.log("\n📄 Transcription file not created yet");
+    }
+  } catch (err) {
+    console.error("❌ Error reading transcription file:", err);
+  }
+}
+
+// Set up periodic file monitoring every 15 seconds
+const fileMonitorInterval = setInterval(() => {
+  printTranscriptionFile();
+}, 15000);
 
 // Start mic
 micInstance.start();
 console.log("🎙️ Live conversation transcription with speaker separation started!");
 console.log("📁 Transcriptions will be saved to:", OUTPUT_FILE);
-console.log("👥 Speakers will be separated with | delimiter");
-console.log("📝 Format: [timestamp] Speaker_A: text | Speaker_B: text");
+console.log("👥 Multiple speakers will be separated with | delimiter");
+console.log("📝 Format: text | text (no timestamps, no speaker labels)");
+console.log("📄 Each chunk on a new line, file contents printed every 15 seconds");
 console.log("⏹️  Press Ctrl+C to stop.");
