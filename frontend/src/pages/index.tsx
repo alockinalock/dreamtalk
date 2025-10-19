@@ -1,0 +1,208 @@
+import { Button } from "@/components/ui/button";
+import { Brain, MessageCircle, Network, Sparkles, Zap } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import heroNetwork from "../assets/hero-network.jpg";
+import aiBrain from "../assets/ai-brain.jpg";
+import conversationFlow from "../assets/conversation-flow.jpg";
+
+const Index = () => {
+  const navigate = useNavigate();
+
+  const handleGetStarted = () => {
+    navigate('/mindmap');
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden">
+        {/* Background Image with Overlay */}
+        <div className="absolute inset-0">
+          <img 
+            src={heroNetwork} 
+            alt="Network visualization" 
+            className="h-full w-full object-cover opacity-40"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background" />
+        </div>
+        
+        {/* Colorful Gradient Overlays */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-accent/20" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(168,85,247,0.4),transparent_40%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_60%,rgba(34,211,238,0.3),transparent_40%)]" />
+        
+        <div className="container relative mx-auto px-6 py-24 lg:py-32">
+          <div className="mx-auto max-w-4xl text-center">
+            <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/20 backdrop-blur-sm px-4 py-2 text-sm animate-fade-in shadow-[0_0_20px_rgba(168,85,247,0.5)]">
+              <Sparkles className="h-4 w-4 text-primary animate-pulse-slow" />
+              <span className="text-foreground font-medium">Transform conversations into knowledge</span>
+            </div>
+            
+            <h1 className="mb-6 text-5xl font-bold tracking-tight text-foreground lg:text-7xl animate-fade-in drop-shadow-[0_0_30px_rgba(168,85,247,0.5)]">
+              Welcome to{" "}
+              <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent animate-pulse-slow">
+                dreamtalk
+              </span>
+            </h1>
+            
+            <p className="mb-10 text-xl text-foreground/90 lg:text-2xl animate-fade-in drop-shadow-lg">
+              Watch your ideas come alive. Record conversations and see a live node map evolve in real-time as you speak.
+            </p>
+            
+            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row animate-fade-in">
+              <Button 
+                size="lg" 
+                onClick={handleGetStarted}
+                className="gap-2 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-[0_0_30px_rgba(168,85,247,0.6)] hover:shadow-[0_0_40px_rgba(168,85,247,0.8)] transition-all border-0"
+              >
+                <Zap className="h-5 w-5" />
+                Get Started
+              </Button>
+              {/* LINK THIS TO THE DEVPOST WHEN OYU POST IT */}
+              <a href="https://github.com">
+                <Button size="lg" variant="outline" className="gap-2 border-primary/50 bg-background/50 backdrop-blur-sm hover:bg-primary/20 hover:border-primary shadow-lg">
+                    <MessageCircle className="h-5 w-5" />
+                    See How It Works
+                </Button>
+               </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Visual Demo Section */}
+      <section className="container mx-auto px-6 py-20">
+        <div className="relative mx-auto max-w-6xl">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 blur-3xl" />
+          <div className="relative rounded-2xl border border-primary/30 bg-card/50 backdrop-blur-sm p-8 shadow-[0_0_50px_rgba(168,85,247,0.3)]">
+            <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-lg bg-gradient-to-br from-secondary to-secondary/50 p-3 shadow-[0_0_20px_rgba(34,211,238,0.5)]">
+                    <MessageCircle className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-semibold text-foreground">Live Conversations</h3>
+                </div>
+                <p className="text-foreground/80 text-lg">
+                  Speak naturally and watch as dreamtalk captures every thought, idea, and connection in real-time.
+                </p>
+                <img 
+                  src={conversationFlow} 
+                  alt="Conversation flow visualization" 
+                  className="rounded-lg border border-primary/20 shadow-[0_0_30px_rgba(168,85,247,0.3)]"
+                />
+              </div>
+              
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-lg bg-gradient-to-br from-primary to-accent p-3 shadow-[0_0_20px_rgba(168,85,247,0.5)]">
+                    <Network className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-semibold text-foreground">Dynamic Node Maps</h3>
+                </div>
+                <p className="text-foreground/80 text-lg">
+                  See your ideas transform into an interconnected web of knowledge that grows with every word.
+                </p>
+                <img 
+                  src={aiBrain} 
+                  alt="AI brain visualization" 
+                  className="rounded-lg border border-accent/20 shadow-[0_0_30px_rgba(236,72,153,0.3)]"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section className="container mx-auto px-6 py-20">
+        <div className="mb-16 text-center">
+          <h2 className="mb-4 text-4xl font-bold text-foreground drop-shadow-[0_0_20px_rgba(168,85,247,0.3)]">
+            Powered by{" "}
+            <span className="bg-gradient-to-r from-secondary via-primary to-accent bg-clip-text text-transparent">
+              Intelligence
+            </span>
+          </h2>
+          <p className="mx-auto max-w-2xl text-lg text-foreground/80">
+            dreamtalk uses advanced technology to understand context, extract meaning, and visualize relationships between your ideas.
+          </p>
+        </div>
+        
+        <div className="grid gap-8 md:grid-cols-3">
+          <div className="group relative rounded-xl border border-primary/30 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm p-8 transition-all hover:border-primary hover:shadow-[0_0_40px_rgba(168,85,247,0.4)] hover:scale-105">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative">
+              <div className="mb-4 inline-flex rounded-lg bg-gradient-to-br from-primary to-primary/50 p-3 shadow-[0_0_20px_rgba(168,85,247,0.5)]">
+                <Brain className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="mb-3 text-xl font-semibold text-foreground">AI-Powered Analysis</h3>
+              <p className="text-foreground/70">
+                Advanced natural language processing identifies key concepts and relationships automatically.
+              </p>
+            </div>
+          </div>
+          
+          <div className="group relative rounded-xl border border-secondary/30 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm p-8 transition-all hover:border-secondary hover:shadow-[0_0_40px_rgba(34,211,238,0.4)] hover:scale-105">
+            <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative">
+              <div className="mb-4 inline-flex rounded-lg bg-gradient-to-br from-secondary to-secondary/50 p-3 shadow-[0_0_20px_rgba(34,211,238,0.5)]">
+                <Zap className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="mb-3 text-xl font-semibold text-foreground">Real-Time Updates</h3>
+              <p className="text-foreground/70">
+                Watch your node map evolve instantly as the conversation flows, capturing every insight.
+              </p>
+            </div>
+          </div>
+          
+          <div className="group relative rounded-xl border border-accent/30 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm p-8 transition-all hover:border-accent hover:shadow-[0_0_40px_rgba(236,72,153,0.4)] hover:scale-105">
+            <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative">
+              <div className="mb-4 inline-flex rounded-lg bg-gradient-to-br from-accent to-accent/50 p-3 shadow-[0_0_20px_rgba(236,72,153,0.5)]">
+                <Sparkles className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="mb-3 text-xl font-semibold text-foreground">Beautiful Visualization</h3>
+              <p className="text-foreground/70">
+                Elegant, intuitive node graphs that make complex ideas easy to understand and navigate.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="container mx-auto px-6 py-20">
+        <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/20 backdrop-blur-sm p-12 text-center shadow-[0_0_60px_rgba(168,85,247,0.4)]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(168,85,247,0.2),transparent_70%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(236,72,153,0.2),transparent_50%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(34,211,238,0.2),transparent_50%)]" />
+          <div className="relative">
+            <h2 className="mb-4 text-4xl font-bold text-foreground drop-shadow-[0_0_30px_rgba(168,85,247,0.5)]">
+              Ready to Transform Your Conversations?
+            </h2>
+            <p className="mx-auto mb-8 max-w-2xl text-lg text-foreground/90">
+              Join the future of collaborative thinking. Start mapping your ideas today.
+            </p>
+            <Button 
+              size="lg" 
+              onClick={handleGetStarted}
+              className="gap-2 bg-gradient-to-r from-primary via-accent to-secondary hover:from-primary/90 hover:via-accent/90 hover:to-secondary/90 shadow-[0_0_40px_rgba(168,85,247,0.7)] hover:shadow-[0_0_50px_rgba(168,85,247,0.9)] transition-all border-0 text-lg px-8"
+            >
+              <Sparkles className="h-5 w-5" />
+              Start Your Journey
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-primary/20 bg-card/30 backdrop-blur-sm py-12">
+        <div className="container mx-auto px-6 text-center text-sm text-foreground/60">
+          <p>© 2025 dreamtalk. Transforming conversations into knowledge.</p>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default Index;
