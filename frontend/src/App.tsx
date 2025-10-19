@@ -1,10 +1,10 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react';
 import type { Node as RFNode, Edge as RFEdge, NodeChange, EdgeChange, Connection } from '@xyflow/react';
 import data from './assets/test.json';
 import CustomNode from './CustomNode';
 import '@xyflow/react/dist/style.css';
-import {AudioExtractor} from "../audioExtractor.ts"
+import { BrowserAudioExtractor } from "../browserAudioExtractor.ts"
 import dagre from 'dagre';
 
 
@@ -84,7 +84,36 @@ export default function App() {
   const [edges, setEdges] = useState<RFEdge[]>(initialEdges);
   const [selectedNode, setSelectedNode] = useState<RFNode | null>(null);
   const [isListening, setIsListening] = useState(false);
-  const extractor = new AudioExtractor();
+  
+  // CRITICAL FIX: Use useRef to maintain the same extractor instance
+  const extractorRef = useRef<BrowserAudioExtractor | null>(null);
+  
+  // Initialize extractor once
+  if (!extractorRef.current) {
+    extractorRef.current = new BrowserAudioExtractor();
+  }
+  
+  const extractor = extractorRef.current;
+
+  // Expose to window for emergency console access
+  useEffect(() => {
+    (window as any).audioExtractor = extractorRef.current;
+    console.log('🔧 Extractor exposed globally as window.audioExtractor');
+    
+    return () => {
+      delete (window as any).audioExtractor;
+    };
+  }, []);
+
+  // Cleanup: stop audio when component unmounts
+  useEffect(() => {
+    return () => {
+      if (extractorRef.current?.isActive()) {
+        console.log('🧹 Component unmounting - stopping audio');
+        extractorRef.current.emergencyStop();
+      }
+    };
+  }, []);
 
   // periodically fetch updated data from test1.json every 5s and re-layout
   useEffect(() => {
@@ -125,9 +154,19 @@ export default function App() {
   }, []);
 
   const handleStart = async () => {
-    console.log('Audio listening started');
+    console.log('🎙️ Audio listening started');
     try {
-      extractor.ae_start() // ✅ Call your audioExtractor’s start()
+      // this is where the fetch is happening
+      const [sessionId, setSessionId] = useState(null);
+      const response = await fetch('http:localhost:5000/create_session', {
+        method: 'POST'
+      });
+
+      const data = await response.json();
+      setSessionId(data.session_id);
+
+
+      await extractor.ae_start();
       setIsListening(true);
     } catch (err) {
       console.error('Failed to start audio:', err);
@@ -135,9 +174,9 @@ export default function App() {
   };
 
   const handleStop = async () => {
-    console.log('Audio listening stopped');
+    console.log('🛑 Audio listening stopped');
     try {
-      extractor.ae_stop() // ✅ Call your audioExtractor’s stop()
+      extractor.ae_stop();
       setIsListening(false);
     } catch (err) {
       console.error('Failed to stop audio:', err);
