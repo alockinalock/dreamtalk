@@ -45,8 +45,13 @@ def node_gen(convo_string: str, json_string: str) -> str:
         Return a fully updated JSON array using this schema:
         Format: {{"id": a number starting at 1 increment by 1, "name": "Name of the concept", "connections": [id of concept1, id of concept2], "longtext": "summary"}}
         Rules:
+        Make sure any connections are single linked. For example, assume 1 is a broad topic connected to 3, a more specific topic.
+        In this instance, 3 would not have 1 in its connections list, but 1 would have 3 in its connections list.
+
         Output must be valid JSON.
+
         Keep previous nodes intact.
+
         Add only truly new concepts or updated summaries."""
         
         response = client.messages.create(
