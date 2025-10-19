@@ -4,7 +4,7 @@ import type { Node as RFNode, Edge as RFEdge, NodeChange, EdgeChange, Connection
 import data from './assets/test.json';
 import CustomNode from './CustomNode';
 import '@xyflow/react/dist/style.css';
-import {AudioExtractor} from "../audioExtractor.ts"
+import { ae_start, ae_stop } from './audioExtractorShim';
 import dagre from 'dagre';
 
 
@@ -84,7 +84,7 @@ export default function App() {
   const [edges, setEdges] = useState<RFEdge[]>(initialEdges);
   const [selectedNode, setSelectedNode] = useState<RFNode | null>(null);
   const [isListening, setIsListening] = useState(false);
-  const extractor = new AudioExtractor();
+  // using shimbed functions that call backend endpoints
 
   // periodically fetch updated data from test1.json every 5s and re-layout
   useEffect(() => {
@@ -127,7 +127,7 @@ export default function App() {
   const handleStart = async () => {
     console.log('Audio listening started');
     try {
-      extractor.ae_start() // ✅ Call your audioExtractor’s start()
+  ae_start(); // ✅ Call the shim which proxies to backend
       setIsListening(true);
     } catch (err) {
       console.error('Failed to start audio:', err);
@@ -137,7 +137,7 @@ export default function App() {
   const handleStop = async () => {
     console.log('Audio listening stopped');
     try {
-      extractor.ae_stop() // ✅ Call your audioExtractor’s stop()
+  ae_stop(); // ✅ Call the shim which proxies to backend
       setIsListening(false);
     } catch (err) {
       console.error('Failed to stop audio:', err);
